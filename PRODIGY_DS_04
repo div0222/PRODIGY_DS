@@ -1,1 +1,77 @@
+import pandas as pd
+from textblob import TextBlob
+import re
+import matplotlib.pyplot as plt
+import seaborn as sns
+from wordcloud import WordCloud
+
+data = pd.DataFrame({
+    'timestamp': ['2024-06-01', '2024-06-01', '2024-06-02', '2024-06-02', '2024-06-03', '2024-06-03'],
+    'text': [
+        'I am really pleased with this product, it works wonders!',
+        'Absolutely thrilled with my purchase. #happy',
+        'Service needs improvement, very disappointed.',
+        'The product did not meet my expectations.',
+        'Neutral about the product, neither good nor bad.',
+        'Could be improved. #meh'
+    ]
+})
+
+def preprocess_text(text):
+    text = text.lower()
+    text = re.sub(r'[^a-z\s]', '', text)
+    return text
+
+data['cleaned_text'] = data['text'].apply(preprocess_text)
+
+def analyze_sentiment(text):
+    analysis = TextBlob(text)
+    return analysis.sentiment.polarity
+
+data['sentiment'] = data['cleaned_text'].apply(analyze_sentiment)
+
+data['timestamp'] = pd.to_datetime(data['timestamp'])
+
+# Word Cloud for Positive and Negative Sentiments
+positive_text = ' '.join(data[data['sentiment'] > 0]['cleaned_text'])
+negative_text = ' '.join(data[data['sentiment'] < 0]['cleaned_text'])
+plt.figure(figsize=(12, 6))
+plt.subplot(1, 2, 1)
+wordcloud = WordCloud(width=400, height=400, background_color='white').generate(positive_text)
+plt.imshow(wordcloud, interpolation='bilinear')
+plt.title('Positive Sentiments')
+plt.axis('off')
+plt.subplot(1, 2, 2)
+wordcloud = WordCloud(width=400, height=400, background_color='black').generate(negative_text)
+plt.imshow(wordcloud, interpolation='bilinear')
+plt.title('Negative Sentiments')
+plt.axis('off')
+plt.show()
+print(" ")
+
+# Histogram of Sentiment Distribution
+plt.figure(figsize=(10, 6))
+sns.histplot(data['sentiment'], bins=10, kde=True)
+plt.title('Sentiment Distribution')
+plt.xlabel('Sentiment Polarity')
+plt.ylabel('Frequency')
+plt.show()
+print(" ")
+
+# Visualize Sentiment Over Time using a line plot
+plt.figure(figsize=(10, 6))
+sns.lineplot(data=data, x='timestamp', y='sentiment', marker='o')
+plt.title('Sentiment Over Time')
+plt.xlabel('Date')
+plt.ylabel('Sentiment Polarity')
+plt.show()
+print(" ")
+
+# Pie Chart for Sentiment Categories
+sentiment_categories = data['sentiment'].apply(lambda x: 'positive' if x > 0 else ('negative' if x < 0 else 'neutral')).value_counts()
+plt.figure(figsize=(8, 8))
+plt.pie(sentiment_categories, labels=sentiment_categories.index, autopct='%1.1f%%', startangle=140, colors=sns.color_palette('viridis', len(sentiment_categories)))
+plt.title('Sentiment Categories Distribution')
+plt.show()
+
 
